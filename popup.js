@@ -1,5 +1,7 @@
 // 기본 인증 유효시간(기본 3초 = 3000ms)
 const DEFAULT_AUTH_VALID_DURATION = 3000;
+// 기본 질문 (저장된 질문이 없을 경우 사용)
+const DEFAULT_QUESTION = "오늘의 날씨는??";
 
 // DOM 요소 가져오기
 const authSection = document.getElementById("authSection");
@@ -11,6 +13,47 @@ const bookmarkList = document.getElementById("bookmarkList");
 const addBookmarkBtn = document.getElementById("addBookmarkBtn");
 const changePasswordBtn = document.getElementById("changePasswordBtn");
 const changeAuthDurationBtn = document.getElementById("changeAuthDurationBtn");
+const changeQuestionBtn = document.getElementById("changeQuestionBtn");
+
+/**
+ * chrome.storage에서 저장된 질문을 가져오는 함수
+ * @param {function(string): void} callback - 저장된 질문을 전달 (없으면 기본 질문)
+ */
+function getStoredQuestion(callback) {
+    chrome.storage.local.get("question", (result) => {
+        callback(result.question || DEFAULT_QUESTION);
+    });
+}
+
+/**
+ * chrome.storage에 질문을 저장하는 함수
+ * @param {string} question - 저장할 질문
+ * @param {function(): void} callback - 저장 완료 후 호출
+ */
+function setStoredQuestion(question, callback) {
+    chrome.storage.local.set({ question: question }, () => {
+        console.log("Question saved:", question);
+        if (callback) callback();
+    });
+}
+
+/**
+ * 질문 변경 함수
+ */
+function changeQuestion() {
+    getStoredQuestion((currentQuestion) => {
+        const newQuestion = prompt("새로운 비밀번호 질문을 입력하세요:", currentQuestion);
+        if (!newQuestion) {
+            alert("질문을 입력해주세요.");
+            return;
+        }
+        setStoredQuestion(newQuestion, () => {
+            // 화면에 변경된 질문 표시
+            questionText.textContent = newQuestion;
+            alert("비밀번호 질문이 변경되었습니다.");
+        });
+    });
+}
 
 /**
  * chrome.storage에서 저장된 비밀번호를 가져오는 함수
@@ -247,8 +290,18 @@ if (changeAuthDurationBtn) {
     changeAuthDurationBtn.addEventListener("click", changeAuthDuration);
 }
 
+// 이벤트 리스너: 비밀번호 질문 변경 버튼 클릭 시
+if (changeQuestionBtn) {
+    changeQuestionBtn.addEventListener("click", changeQuestion);
+}
+
 // 초기 실행: 마지막 로그인 시간 확인하여 유효하면 질문 없이 북마크 영역 표시
 document.addEventListener("DOMContentLoaded", () => {
+    // 질문 로드
+    getStoredQuestion((question) => {
+        questionText.textContent = question;
+    });
+    // 인증 유효시간 확인
     isAuthValid((valid) => {
         if (valid) {
             onAuthSuccess();

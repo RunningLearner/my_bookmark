@@ -19,7 +19,8 @@
   <!-- 로그인/질문 영역 -->
   <div id="authSection">
     <div id="questionSection">
-      <p>오늘의 날씨는??</p>
+      <!-- 질문 내용은 스크립트에서 업데이트합니다. -->
+      <p id="questionText">오늘의 날씨는??</p>
       <input type="password" id="passwordInput" />
       <button id="authBtn">확인</button>
     </div>
@@ -34,6 +35,8 @@
     <button id="changePasswordBtn">비밀번호 변경</button>
     <!-- 인증 유효시간 변경 버튼 -->
     <button id="changeAuthDurationBtn">인증 유효시간 변경</button>
+    <!-- 비밀번호 질문 변경 버튼 -->
+    <button id="changeQuestionBtn">질문 변경</button>
   </div>
   
   <script src="popup.js"></script>
