@@ -1,5 +1,5 @@
-// 인증 유효시간(예: 1시간 = 3600000ms)
-const AUTH_VALID_DURATION = 3;
+// 기본 인증 유효시간(기본 3초 = 3000ms)
+const DEFAULT_AUTH_VALID_DURATION = 3000;
 
 // DOM 요소 가져오기
 const authSection = document.getElementById("authSection");
@@ -10,6 +10,7 @@ const bookmarkSection = document.getElementById("bookmarkSection");
 const bookmarkList = document.getElementById("bookmarkList");
 const addBookmarkBtn = document.getElementById("addBookmarkBtn");
 const changePasswordBtn = document.getElementById("changePasswordBtn");
+const changeAuthDurationBtn = document.getElementById("changeAuthDurationBtn");
 
 /**
  * chrome.storage에서 저장된 비밀번호를 가져오는 함수
@@ -44,8 +45,10 @@ function isAuthValid(callback) {
             callback(false);
             return;
         }
-        const elapsed = Date.now() - Number(lastLogin);
-        callback(elapsed < AUTH_VALID_DURATION);
+        getStoredAuthDuration((authDuration) => {
+            const elapsed = Date.now() - Number(lastLogin);
+            callback(elapsed < authDuration);
+        });
     });
 }
 
@@ -57,6 +60,28 @@ function isAuthValid(callback) {
 function setLastLogin(timestamp, callback) {
     chrome.storage.local.set({ lastLogin: timestamp }, () => {
         console.log("Last login time saved:", timestamp);
+        if (callback) callback();
+    });
+}
+
+/**
+ * chrome.storage에서 저장된 인증 유효시간을 가져오는 함수
+ * @param {function(number): void} callback - 저장된 유효시간(ms)을 전달하는 콜백
+ */
+function getStoredAuthDuration(callback) {
+    chrome.storage.local.get("authDuration", (result) => {
+        callback(result.authDuration ? Number(result.authDuration) : DEFAULT_AUTH_VALID_DURATION);
+    });
+}
+
+/**
+ * chrome.storage에 인증 유효시간을 저장하는 함수
+ * @param {number} duration - 인증 유효시간(ms)
+ * @param {function(): void} callback - 저장 완료 후 호출할 콜백 함수
+ */
+function setStoredAuthDuration(duration, callback) {
+    chrome.storage.local.set({ authDuration: duration }, () => {
+        console.log("Auth duration saved:", duration);
         if (callback) callback();
     });
 }
@@ -175,6 +200,23 @@ function changePassword() {
     });
 }
 
+/**
+ * 인증 유효시간 변경 함수
+ */
+function changeAuthDuration() {
+    getStoredAuthDuration((currentDuration) => {
+        const newDuration = prompt("인증 유효시간을 밀리초 단위로 입력하세요. (현재: " + currentDuration + "ms)", currentDuration);
+        const duration = Number(newDuration);
+        if (isNaN(duration) || duration <= 0) {
+            alert("유효한 숫자를 입력해주세요.");
+            return;
+        }
+        setStoredAuthDuration(duration, () => {
+            alert("인증 유효시간이 변경되었습니다: " + duration + "ms");
+        });
+    });
+}
+
 // 이벤트 리스너: 인증 버튼 클릭 시
 authBtn.addEventListener("click", () => {
     const input = passwordInput.value;
@@ -198,6 +240,11 @@ addBookmarkBtn.addEventListener("click", addCurrentPageBookmark);
 // 이벤트 리스너: 비밀번호 변경 버튼 클릭 시
 if (changePasswordBtn) {
     changePasswordBtn.addEventListener("click", changePassword);
+}
+
+// 이벤트 리스너: 인증 유효시간 변경 버튼 클릭 시
+if (changeAuthDurationBtn) {
+    changeAuthDurationBtn.addEventListener("click", changeAuthDuration);
 }
 
 // 초기 실행: 마지막 로그인 시간 확인하여 유효하면 질문 없이 북마크 영역 표시
